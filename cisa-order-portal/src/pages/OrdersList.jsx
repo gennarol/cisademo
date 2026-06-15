@@ -42,7 +42,7 @@ export default function OrdersList() {
     const delayThresholdMs = 24 * 60 * 60 * 1000;
     const nowMs = Date.now();
     return orders.filter(order => {
-      if (filterAgent && order.agent.id !== parseInt(filterAgent)) return false;
+      if (filterAgent && order.agent?.id !== parseInt(filterAgent)) return false;
       if (filterStatus && order.status !== filterStatus) return false;
       if (filterDateFrom && order.date < filterDateFrom) return false;
       if (filterDateTo && order.date > filterDateTo) return false;
@@ -53,10 +53,12 @@ export default function OrdersList() {
       }
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
+        const customerName = order.customer?.name || (typeof order.customer === 'string' ? order.customer : '');
+        const agentName = order.agent?.name || '';
         return (
-          order.orderNumber.toLowerCase().includes(q) ||
-          order.customer.name.toLowerCase().includes(q) ||
-          order.agent.name.toLowerCase().includes(q)
+          (order.orderNumber || '').toLowerCase().includes(q) ||
+          customerName.toLowerCase().includes(q) ||
+          agentName.toLowerCase().includes(q)
         );
       }
       return true;
@@ -143,10 +145,10 @@ export default function OrdersList() {
                   onClick={() => navigate(`/orders/${order.id}`)}
                 >
                   <td className="font-mono">{order.orderNumber}</td>
-                  <td>{new Date(order.date).toLocaleDateString('it-IT')}</td>
-                  <td>{order.customer.name}</td>
-                  <td>{order.agent.name}</td>
-                  <td className="text-right">€ {order.totalAmount.toLocaleString('it-IT', { minimumFractionDigits: 2 })}</td>
+                  <td>{order.date ? new Date(order.date).toLocaleDateString('it-IT') : '-'}</td>
+                  <td>{order.customer?.name || (typeof order.customer === 'string' ? order.customer : '-')}</td>
+                  <td>{order.agent?.name || '-'}</td>
+                  <td className="text-right">€ {(order.totalAmount || 0).toLocaleString('it-IT', { minimumFractionDigits: 2 })}</td>
                   <td><ScoreBadge score={order.scoreAI} /></td>
                   <td>
                     <span className={`formal-checks-badge-sm ${checks.passed ? 'formal-checks-passed' : 'formal-checks-failed'}`} title={checks.passed ? 'Tutti i controlli superati' : checks.failedChecks.map(c => c.label).join(', ')}>
