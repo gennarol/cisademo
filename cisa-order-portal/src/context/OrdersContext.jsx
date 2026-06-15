@@ -1,20 +1,54 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { orders as initialOrders } from '../data/mockData';
+import { featureFlags } from '../config/featureFlags';
+import { ordersApi } from '../services/api';
 
 const OrdersContext = createContext();
 
 export function OrdersProvider({ children }) {
-  const [orders, setOrders] = useState(initialOrders);
+  const [orders, setOrders] = useState(featureFlags.USE_API ? [] : initialOrders);
+  const [loading, setLoading] = useState(featureFlags.USE_API);
+  const [error, setError] = useState(null);
 
-  const updateOrder = (orderId, updates) => {
+  // Fetch orders from API on mount
+  const fetchOrders = useCallback(async () => {
+    if (!featureFlags.USE_API) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await ordersApi.getAll();
+      setOrders(data);
+    } catch (err) {
+      setError(err.message);
+      console.error('Failed to fetch orders:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
+
+  const updateOrder = async (orderId, updates) => {
+    // Optimistic local update
     setOrders(prev =>
       prev.map(order =>
         order.id === orderId ? { ...order, ...updates } : order
       )
     );
+    if (featureFlags.USE_API) {
+      try {
+        await ordersApi.update(orderId, updates);
+      } catch (err) {
+        console.error('Failed to update order:', err);
+        fetchOrders(); // Revert by re-fetching
+      }
+    }
   };
 
-  const updateOrderLine = (orderId, lineId, updates) => {
+  const updateOrderLine = async (orderId, lineId, updates) => {
+    // Optimistic local update
     setOrders(prev =>
       prev.map(order => {
         if (order.id !== orderId) return order;
@@ -25,17 +59,49 @@ export function OrdersProvider({ children }) {
         return { ...order, lines: newLines, totalAmount: +totalAmount.toFixed(2) };
       })
     );
+    if (featureFlags.USE_API) {
+      try {
+        await ordersApi.updateLine(orderId, lineId, updates);
+      } catch (err) {
+        console.error('Failed to update order line:', err);
+        fetchOrders();
+      }
+    }
   };
 
-  const approveOrder = (orderId) => {
-    updateOrder(orderId, { status: 'approvato' });
+  const approveOrder = async (orderId) => {
+    setOrders(prev =>
+      prev.map(order =>
+        order.id === orderId ? { ...order, status: 'approvato' } : order
+      )
+    );
+    if (featureFlags.USE_API) {
+      try {
+        await ordersApi.approve(orderId);
+      } catch (err) {
+        console.error('Failed to approve order:', err);
+        fetchOrders();
+      }
+    }
   };
 
-  const sendToD365 = (orderId) => {
-    updateOrder(orderId, { status: 'inviato_d365' });
+  const sendToD365 = async (orderId) => {
+    setOrders(prev =>
+      prev.map(order =>
+        order.id === orderId ? { ...order, status: 'inviato_d365' } : order
+      )
+    );
+    if (featureFlags.USE_API) {
+      try {
+        await ordersApi.sendToD365(orderId);
+      } catch (err) {
+        console.error('Failed to send to D365:', err);
+        fetchOrders();
+      }
+    }
   };
 
-  const requestCorrection = (orderId, message, channel) => {
+  const requestCorrection = async (orderId, message, channel) => {
     setOrders(prev =>
       prev.map(order => {
         if (order.id !== orderId) return order;
@@ -44,11 +110,19 @@ export function OrdersProvider({ children }) {
         return { ...order, status: 'richiesta_correzione', correctionRequests };
       })
     );
+    if (featureFlags.USE_API) {
+      try {
+        await ordersApi.requestCorrection(orderId, message, channel);
+      } catch (err) {
+        console.error('Failed to request correction:', err);
+        fetchOrders();
+      }
+    }
   };
 
   return (
     <OrdersContext.Provider
-      value={{ orders, updateOrder, updateOrderLine, approveOrder, sendToD365, requestCorrection }}
+      value={{ orders, loading, error, updateOrder, updateOrderLine, approveOrder, sendToD365, requestCorrection, refetchOrders: fetchOrders }}
     >
       {children}
     </OrdersContext.Provider>
