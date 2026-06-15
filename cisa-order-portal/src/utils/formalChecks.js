@@ -14,7 +14,8 @@
  */
 
 export function computeFormalChecks(order) {
-  const lineChecks = order.lines.map(line => {
+  const lines = order.lines || [];
+  const lineChecks = lines.map(line => {
     const checks = [];
 
     // Check 1: Article specified but not in registry

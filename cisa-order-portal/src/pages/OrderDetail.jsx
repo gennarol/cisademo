@@ -113,7 +113,7 @@ export default function OrderDetail() {
       return;
     }
 
-    let message = `Gentile ${order.agent.name},\n\n`;
+    let message = `Gentile ${order.agent?.name || 'Agente'},\n\n`;
     message += `nell'ordine ${order.orderNumber} sono stati riscontrati i seguenti problemi:\n\n`;
 
     // Group by check type
@@ -121,7 +121,7 @@ export default function OrderDetail() {
     const lineIssues = failedChecks.filter(c => c.id !== 2);
 
     if (customerIssue) {
-      message += `• Cliente "${order.customer.name}" non presente in anagrafica\n`;
+      message += `• Cliente "${order.customer?.name || (typeof order.customer === 'string' ? order.customer : 'N/A')}" non presente in anagrafica\n`;
     }
 
     if (lineIssues.length > 0) {
@@ -162,12 +162,12 @@ export default function OrderDetail() {
 
   // Pre-fill correction for customer not found
   const openCorrectionForCustomer = () => {
-    const name = order.customer.name || '';
-    const vat = order.customer.vatNumber || '';
-    const address = order.customer.address || '';
-    const city = order.customer.city || '';
+    const name = order.customer?.name || (typeof order.customer === 'string' ? order.customer : '');
+    const vat = order.customer?.vatNumber || '';
+    const address = order.customer?.address || '';
+    const city = order.customer?.city || '';
     setCorrectionMessage(
-      `Gentile ${order.agent.name},\n\n` +
+      `Gentile ${order.agent?.name || 'Agente'},\n\n` +
       `il cliente indicato nell'ordine ${order.orderNumber} non è presente in anagrafica.\n` +
       `Per procedere alla creazione, necessito dei seguenti dati:\n\n` +
       `- RAGIONE SOCIALE: ${name}\n` +
@@ -182,7 +182,7 @@ export default function OrderDetail() {
   // Pre-fill correction for article not found
   const openCorrectionForArticle = (line) => {
     setCorrectionMessage(
-      `Gentile ${order.agent.name},\n\n` +
+      `Gentile ${order.agent?.name || 'Agente'},\n\n` +
       `nell'ordine ${order.orderNumber}, riga ${line.lineNumber}, ` +
       `l'articolo "${line.originalText || line.productName}" (cod. ${line.productId}) ` +
       `non è presente in anagrafica.\n\n` +
@@ -305,7 +305,7 @@ export default function OrderDetail() {
             <div className="meta-item">
               <span className="meta-label">Cliente</span>
               <span className="meta-value meta-value-with-action">
-                {order.customer.name}
+                {order.customer?.name || (typeof order.customer === 'string' ? order.customer : '-')}
                 {order.customerStatus === 'not_found' && (
                   <button className="btn-inline-warning" onClick={() => setShowCustomerModal(true)} title="Cliente non trovato in anagrafica">
                     <Warning size={16} weight="fill" />
@@ -319,11 +319,11 @@ export default function OrderDetail() {
             </div>
             <div className="meta-item">
               <span className="meta-label">Agente di Vendita</span>
-              <span className="meta-value">{order.agent.name} ({order.agent.region})</span>
+              <span className="meta-value">{order.agent?.name || '-'}{order.agent?.region ? ` (${order.agent.region})` : ''}</span>
             </div>
             <div className="meta-item">
               <span className="meta-label">Importo Totale</span>
-              <span className="meta-value meta-value-large">€ {order.totalAmount.toLocaleString('it-IT', { minimumFractionDigits: 2 })}</span>
+              <span className="meta-value meta-value-large">€ {(order.totalAmount || 0).toLocaleString('it-IT', { minimumFractionDigits: 2 })}</span>
             </div>
             <div className="meta-item">
               <span className="meta-label">Score AI</span>
@@ -488,14 +488,14 @@ export default function OrderDetail() {
                         />
                       ) : (
                         <span className={line.priceMismatch ? 'text-error' : ''}>
-                          € {line.unitPrice.toFixed(2)}
+                          € {(line.unitPrice || 0).toFixed(2)}
                         </span>
                       )}
                     </td>
                     <td className="text-right">
                       € {editingLine === line.id
                         ? (editValues.quantity * editValues.unitPrice).toFixed(2)
-                        : line.totalPrice.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
+                        : (line.totalPrice || 0).toLocaleString('it-IT', { minimumFractionDigits: 2 })}
                     </td>
                     <td><ScoreBadge score={line.scoreAI} /></td>
                     <td>
@@ -559,6 +559,8 @@ export default function OrderDetail() {
         {/* TAB: Email Originale */}
         {activeTab === 'email' && (
           <div className="email-card">
+            {order.email ? (
+            <>
             <div className="email-header-info">
               <div className="email-meta-row">
                 <span className="email-meta-label">Da:</span>
@@ -574,13 +576,13 @@ export default function OrderDetail() {
               </div>
               <div className="email-meta-row">
                 <span className="email-meta-label">Data:</span>
-                <span className="email-meta-value">{new Date(order.email.date).toLocaleString('it-IT')}</span>
+                <span className="email-meta-value">{order.email?.date ? new Date(order.email.date).toLocaleString('it-IT') : '-'}</span>
               </div>
             </div>
             <div className="email-body">
               <pre>{order.email.body}</pre>
             </div>
-            {order.email.attachments.length > 0 && (
+            {(order.email?.attachments || []).length > 0 && (
               <div className="email-attachments">
                 <div className="attachments-header">
                   <Paperclip size={16} />
@@ -601,6 +603,10 @@ export default function OrderDetail() {
                   ))}
                 </div>
               </div>
+            )}
+            </>
+            ) : (
+              <p className="text-muted">Nessuna email disponibile per questo ordine.</p>
             )}
           </div>
         )}
@@ -635,7 +641,7 @@ export default function OrderDetail() {
                     </div>
                     <div className="revision-recipient">
                       <span className="revision-label">Inviata a:</span>
-                      <span>{order.agent.name} ({order.emailFrom})</span>
+                      <span>{order.agent?.name || '-'} ({order.emailFrom || ''})</span>
                     </div>
                     <div className="revision-message">
                       <p>{req.message}</p>
