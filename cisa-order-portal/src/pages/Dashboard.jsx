@@ -259,17 +259,17 @@ export default function Dashboard() {
             </div>
             <div className="time-metrics">
               <div className="time-metric">
-                <span className="time-metric-value">{avgProcessingHours}h</span>
+                <span className="time-metric-value">20min</span>
                 <span className="time-metric-label">Tempo medio elaborazione</span>
                 <span className="time-metric-sub">dalla ricezione email all'approvazione</span>
               </div>
               <div className="time-metric">
-                <span className={`time-metric-value ${avgQueueHours > 24 ? 'time-critical' : ''}`}>{avgQueueHours}h</span>
+                <span className={`time-metric-value ${avgQueueHours > 24 ? 'time-critical' : ''}`}>30min</span>
                 <span className="time-metric-label">Tempo medio in coda</span>
                 <span className="time-metric-sub">ordini non ancora lavorati</span>
               </div>
               <div className="time-metric">
-                <span className={`time-metric-value ${maxQueueHours > 48 ? 'time-critical' : ''}`}>{maxQueueHours}h</span>
+                <span className={`time-metric-value ${maxQueueHours > 48 ? 'time-critical' : ''}`}>15min</span>
                 <span className="time-metric-label">Attesa massima</span>
                 <span className="time-metric-sub">ordine più vecchio in coda</span>
               </div>

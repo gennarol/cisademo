@@ -62,7 +62,7 @@ export default function OrdersList() {
         );
       }
       return true;
-    });
+    }).sort((a, b) => new Date(b.date) - new Date(a.date));
   }, [orders, filterAgent, filterStatus, filterDateFrom, filterDateTo, searchQuery, filterScoreMax, filterDelayed]);
 
   return (
